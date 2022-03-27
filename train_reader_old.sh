@@ -1,0 +1,18 @@
+python train_reader.py \
+    --encoder_model_type hf_bert \
+    --seed 42 \
+    --learning_rate 1e-4 \
+    --eval_step 2000 \
+    --do_lower_case \
+    --eval_top_docs 50 \
+    --warmup_steps 0 \
+    --sequence_length 350 \
+    --batch_size 1 \
+    --passages_per_question 24 \
+    --num_train_epochs 3 \
+    --dev_batch_size 72 \
+    --passages_per_question_predict 50 \
+    --pretrained_model_cfg bert-base-uncased \
+    --train_file ./outputs/retrieve_dev_out_all_have_positive.1.pkl \
+    --dev_file ./outputs/retrieve_dev_out_all_have_positive.1.pkl \
+    --output_dir train_output

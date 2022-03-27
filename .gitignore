@@ -1,0 +1,10 @@
+/downloads/
+/outputs/
+/build/
+/dist/
+/dpr.egg-info/
+/train_output/
+*.sh
+*.pyc
+*.gz
+*.tmp

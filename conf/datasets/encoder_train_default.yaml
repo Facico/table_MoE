@@ -1,0 +1,76 @@
+# @package _group_
+
+nq_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.nq-train
+
+nq_train_hn1:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.nq-adv-hn-train
+
+nq_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.nq-dev
+
+nq_table_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.table_train
+nq_table_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.table_dev
+
+tapas_dpr_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_train
+tapas_dpr_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_dev
+
+tapas_dpr_simple_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_simple_train
+tapas_dpr_simple_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_simple_dev
+
+
+tapas_dpr_mine_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_mine_train
+tapas_dpr_mine_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.tapas_dpr_mine_dev
+
+
+trivia_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.trivia-train
+
+trivia_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.trivia-dev
+
+squad1_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.squad1-train
+
+squad1_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.squad1-dev
+
+webq_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.webq-train
+  
+webq_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.webq-dev
+  
+curatedtrec_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.curatedtrec-train
+  
+curatedtrec_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.retriever.curatedtrec-dev
+    
