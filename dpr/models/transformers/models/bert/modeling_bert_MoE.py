@@ -196,7 +196,7 @@ class MoE_BertEmbeddings(nn.Module):
             )
 
     def forward(
-        self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0, MoE_type='text'
+        self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0, MoE_type_tensor = None
     ):
         if input_ids is not None:
             input_shape = input_ids.size()
@@ -227,7 +227,7 @@ class MoE_BertEmbeddings(nn.Module):
         if self.position_embedding_type == "absolute":
             position_embeddings = self.position_embeddings(position_ids)
             embeddings += position_embeddings
-        embeddings = self.LayerNorm(embeddings, MoE_type=MoE_type)
+        embeddings = self.LayerNorm(embeddings, MoE_type_tensor=MoE_type_tensor)
         embeddings = self.dropout(embeddings)
         return embeddings
 
@@ -277,9 +277,9 @@ class MoE_BertSelfAttention(nn.Module):
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Tuple:
-        mixed_query_layer = self.query(hidden_states, MoE_type=MoE_type)
+        mixed_query_layer = self.query(hidden_states, MoE_type_tensor=MoE_type_tensor)
 
         # If this is instantiated as a cross-attention module, the keys
         # and values come from an encoder; the attention mask needs to be
@@ -292,17 +292,17 @@ class MoE_BertSelfAttention(nn.Module):
             value_layer = past_key_value[1]
             attention_mask = encoder_attention_mask
         elif is_cross_attention:
-            key_layer = self.transpose_for_scores(self.key(encoder_hidden_states, MoE_type=MoE_type))
-            value_layer = self.transpose_for_scores(self.value(encoder_hidden_state, MoE_type=MoE_type))
+            key_layer = self.transpose_for_scores(self.key(encoder_hidden_states, MoE_type_tensor=MoE_type_tensor))
+            value_layer = self.transpose_for_scores(self.value(encoder_hidden_state, MoE_type_tensor=MoE_type_tensor))
             attention_mask = encoder_attention_mask
         elif past_key_value is not None:
-            key_layer = self.transpose_for_scores(self.key(hidden_states, MoE_type=MoE_type))
-            value_layer = self.transpose_for_scores(self.value(hidden_states, MoE_type=MoE_type))
+            key_layer = self.transpose_for_scores(self.key(hidden_states, MoE_type_tensor=MoE_type_tensor))
+            value_layer = self.transpose_for_scores(self.value(hidden_states, MoE_type_tensor=MoE_type_tensor))
             key_layer = torch.cat([past_key_value[0], key_layer], dim=2)
             value_layer = torch.cat([past_key_value[1], value_layer], dim=2)
         else:
-            key_layer = self.transpose_for_scores(self.key(hidden_states, MoE_type=MoE_type))
-            value_layer = self.transpose_for_scores(self.value(hidden_states, MoE_type=MoE_type))
+            key_layer = self.transpose_for_scores(self.key(hidden_states, MoE_type_tensor=MoE_type_tensor))
+            value_layer = self.transpose_for_scores(self.value(hidden_states, MoE_type_tensor=MoE_type_tensor))
 
         query_layer = self.transpose_for_scores(mixed_query_layer)
 
@@ -371,10 +371,10 @@ class MoE_BertSelfOutput(nn.Module):
         self.LayerNorm = LN_hard_MoE(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor, MoE_type='text') -> torch.Tensor:
-        hidden_states = self.dense(hidden_states, MoE_type=MoE_type)
+    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor, MoE_type_tensor = None) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states, MoE_type_tensor=MoE_type_tensor)
         hidden_states = self.dropout(hidden_states)
-        hidden_states = self.LayerNorm(hidden_states + input_tensor, MoE_type=MoE_type)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor, MoE_type_tensor=MoE_type_tensor)
         return hidden_states
 
 
@@ -418,7 +418,7 @@ class MoE_BertAttention(nn.Module):
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
-        MoE_type='text'
+        MoE_type_tensor = None
     ) -> Tuple:
         self_outputs = self.self(
             hidden_states,
@@ -428,9 +428,9 @@ class MoE_BertAttention(nn.Module):
             encoder_attention_mask,
             past_key_value,
             output_attentions,
-            MoE_type=MoE_type
+            MoE_type_tensor=MoE_type_tensor
         )
-        attention_output = self.output(self_outputs[0], hidden_states, MoE_type=MoE_type)
+        attention_output = self.output(self_outputs[0], hidden_states, MoE_type_tensor=MoE_type_tensor)
         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
         return outputs
 
@@ -444,8 +444,8 @@ class MoE_BertIntermediate(nn.Module):
         else:
             self.intermediate_act_fn = config.hidden_act
 
-    def forward(self, hidden_states: torch.Tensor, MoE_type='text') -> torch.Tensor:
-        hidden_states = self.dense(hidden_states, MoE_type=MoE_type)
+    def forward(self, hidden_states: torch.Tensor, MoE_type_tensor = None) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states, MoE_type_tensor=MoE_type_tensor)
         hidden_states = self.intermediate_act_fn(hidden_states)
         return hidden_states
 
@@ -457,10 +457,10 @@ class MoE_BertOutput(nn.Module):
         self.LayerNorm = LN_hard_MoE(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor, MoE_type='text') -> torch.Tensor:
-        hidden_states = self.dense(hidden_states, MoE_type=MoE_type)
+    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor, MoE_type_tensor = None) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states, MoE_type_tensor=MoE_type_tensor)
         hidden_states = self.dropout(hidden_states)
-        hidden_states = self.LayerNorm(hidden_states + input_tensor, MoE_type=MoE_type)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor, MoE_type_tensor=MoE_type_tensor)
         return hidden_states
 
 
@@ -488,7 +488,7 @@ class MoE_BertLayer(nn.Module):
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Tuple:
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
         self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
@@ -498,7 +498,7 @@ class MoE_BertLayer(nn.Module):
             head_mask,
             output_attentions=output_attentions,
             past_key_value=self_attn_past_key_value,
-            MoE_type=MoE_type
+            MoE_type_tensor=MoE_type_tensor
         )
         attention_output = self_attention_outputs[0]
 
@@ -526,7 +526,7 @@ class MoE_BertLayer(nn.Module):
                 encoder_attention_mask,
                 cross_attn_past_key_value,
                 output_attentions,
-                MoE_type=MoE_type
+                MoE_type_tensor=MoE_type_tensor
             )
             attention_output = cross_attention_outputs[0]
             outputs = outputs + cross_attention_outputs[1:-1]  # add cross attentions if we output attention weights
@@ -536,7 +536,7 @@ class MoE_BertLayer(nn.Module):
             present_key_value = present_key_value + cross_attn_present_key_value
 
         layer_output = apply_chunking_to_forward(
-            self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output, MoE_type
+            self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output, MoE_type_tensor
         )
         outputs = (layer_output,) + outputs
 
@@ -546,9 +546,9 @@ class MoE_BertLayer(nn.Module):
 
         return outputs
 
-    def feed_forward_chunk(self, attention_output, MoE_type='text'):
-        intermediate_output = self.intermediate(attention_output, MoE_type=MoE_type)
-        layer_output = self.output(intermediate_output, attention_output, MoE_type=MoE_type)
+    def feed_forward_chunk(self, attention_output, MoE_type_tensor = None):
+        intermediate_output = self.intermediate(attention_output, MoE_type_tensor=MoE_type_tensor)
+        layer_output = self.output(intermediate_output, attention_output, MoE_type_tensor=MoE_type_tensor)
         return layer_output
 
 
@@ -571,7 +571,7 @@ class MoE_BertEncoder(nn.Module):
         output_attentions: Optional[bool] = False,
         output_hidden_states: Optional[bool] = False,
         return_dict: Optional[bool] = True,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Union[Tuple, BaseModelOutputWithPastAndCrossAttentions]:
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
@@ -608,7 +608,7 @@ class MoE_BertEncoder(nn.Module):
                     encoder_attention_mask,
                     None,
                     None,
-                    MoE_type,
+                    MoE_type_tensor,
                 )
             else:
                 layer_outputs = layer_module(
@@ -619,7 +619,7 @@ class MoE_BertEncoder(nn.Module):
                     encoder_attention_mask,
                     past_key_value,
                     output_attentions,
-                    MoE_type,
+                    MoE_type_tensor,
                 )
 
             hidden_states = layer_outputs[0]
@@ -660,11 +660,11 @@ class MoE_BertPooler(nn.Module):
         self.dense = Bias_hard_MoE_Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
 
-    def forward(self, hidden_states: torch.Tensor, MoE_type='text') -> torch.Tensor:
+    def forward(self, hidden_states: torch.Tensor, MoE_type_tensor = None) -> torch.Tensor:
         # We "pool" the model by simply taking the hidden state corresponding
         # to the first token.
         first_token_tensor = hidden_states[:, 0]
-        pooled_output = self.dense(first_token_tensor, MoE_type=MoE_type)
+        pooled_output = self.dense(first_token_tensor, MoE_type_tensor=MoE_type_tensor)
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
@@ -679,10 +679,10 @@ class MoE_BertPredictionHeadTransform(nn.Module):
             self.transform_act_fn = config.hidden_act
         self.LayerNorm = LN_hard_MoE(config.hidden_size, eps=config.layer_norm_eps)
 
-    def forward(self, hidden_states: torch.Tensor, MoE_type='text') -> torch.Tensor:
-        hidden_states = self.dense(hidden_states, MoE_type=MoE_type)
+    def forward(self, hidden_states: torch.Tensor, MoE_type_tensor = None) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states, MoE_type_tensor=MoE_type_tensor)
         hidden_states = self.transform_act_fn(hidden_states)
-        hidden_states = self.LayerNorm(hidden_states, MoE_type=MoE_type)
+        hidden_states = self.LayerNorm(hidden_states, MoE_type_tensor=MoE_type_tensor)
         return hidden_states
 
 
@@ -721,8 +721,8 @@ class MoE_BertOnlyNSPHead(nn.Module):
         super().__init__()
         self.seq_relationship = Bias_hard_MoE_Linear(config.hidden_size, 2)
 
-    def forward(self, pooled_output, MoE_type='text'):
-        seq_relationship_score = self.seq_relationship(pooled_output, MoE_type=MoE_type)
+    def forward(self, pooled_output, MoE_type_tensor = None):
+        seq_relationship_score = self.seq_relationship(pooled_output, MoE_type_tensor=MoE_type_tensor)
         return seq_relationship_score
 
 
@@ -732,9 +732,9 @@ class MoE_BertPreTrainingHeads(nn.Module):
         self.predictions = MoE_BertLMPredictionHead(config)
         self.seq_relationship = Bias_hard_MoE_Linear(config.hidden_size, 2)
 
-    def forward(self, sequence_output, pooled_output, MoE_type='text'):
+    def forward(self, sequence_output, pooled_output, MoE_type_tensor = None):
         prediction_scores = self.predictions(sequence_output)
-        seq_relationship_score = self.seq_relationship(pooled_output, MoE_type=MoE_type)
+        seq_relationship_score = self.seq_relationship(pooled_output, MoE_type_tensor=MoE_type_tensor)
         return prediction_scores, seq_relationship_score
 
 
@@ -936,7 +936,7 @@ class MoE_BertModel(MoE_BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type='text',
+        MoE_type_tensor,
     ) -> Union[Tuple, BaseModelOutputWithPoolingAndCrossAttentions]:
         r"""
         encoder_hidden_states  (`torch.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):
@@ -1035,7 +1035,7 @@ class MoE_BertModel(MoE_BertPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            MoE_type=MoE_type,
+            MoE_type_tensor=MoE_type_tensor,
         )
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
@@ -1565,7 +1565,7 @@ class MoE_BertForSequenceClassification(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Union[Tuple, SequenceClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1590,7 +1590,7 @@ class MoE_BertForSequenceClassification(BertPreTrainedModel):
         pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output, MoE_type=MoE_type)
+        logits = self.classifier(pooled_output, MoE_type_tensor=MoE_type_tensor)
 
         loss = None
         if labels is not None:
@@ -1666,7 +1666,7 @@ class MoE_BertForMultipleChoice(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Union[Tuple, MultipleChoiceModelOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1702,7 +1702,7 @@ class MoE_BertForMultipleChoice(BertPreTrainedModel):
         pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output, MoE_type=MoE_type)
+        logits = self.classifier(pooled_output, MoE_type_tensor=MoE_type_tensor)
         reshaped_logits = logits.view(-1, num_choices)
 
         loss = None
@@ -1766,7 +1766,7 @@ class MoE_BertForTokenClassification(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1789,7 +1789,7 @@ class MoE_BertForTokenClassification(BertPreTrainedModel):
         sequence_output = outputs[0]
 
         sequence_output = self.dropout(sequence_output)
-        logits = self.classifier(sequence_output, MoE_type=MoE_type)
+        logits = self.classifier(sequence_output, MoE_type_tensor=MoE_type_tensor)
 
         loss = None
         if labels is not None:
@@ -1849,7 +1849,7 @@ class MoE_BertForQuestionAnswering(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type='text',
+        MoE_type_tensor = None,
     ) -> Union[Tuple, QuestionAnsweringModelOutput]:
         r"""
         start_positions (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1877,7 +1877,7 @@ class MoE_BertForQuestionAnswering(BertPreTrainedModel):
 
         sequence_output = outputs[0]
 
-        logits = self.qa_outputs(sequence_output, MoE_type=MoE_type)
+        logits = self.qa_outputs(sequence_output, MoE_type_tensor=MoE_type_tensor)
         start_logits, end_logits = logits.split(1, dim=-1)
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()

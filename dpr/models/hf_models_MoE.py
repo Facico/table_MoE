@@ -237,14 +237,14 @@ class MoE_HFBertEncoder(MoE_BertModel):
         token_type_ids: T,
         attention_mask: T,
         representation_token_pos=0,
-        MoE_type='text',
+        MoE_type_tensor=None,
     ) -> Tuple[T, ...]:
 
         out = super().forward(
             input_ids=input_ids,
             token_type_ids=token_type_ids,
             attention_mask=attention_mask,
-            MoE_type=MoE_type,
+            MoE_type_tensor=MoE_type_tensor,
         )
 
         # HF >4.0 version support
@@ -264,7 +264,7 @@ class MoE_HFBertEncoder(MoE_BertModel):
                 input_ids=input_ids,
                 token_type_ids=token_type_ids,
                 attention_mask=attention_mask,
-                MoE_type=MoE_type,
+                MoE_type_tensor=MoE_type_tensor,
             )
             sequence_output, pooled_output = out
 
@@ -278,7 +278,7 @@ class MoE_HFBertEncoder(MoE_BertModel):
             pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
 
         if self.encode_proj:
-            pooled_output = self.encode_proj(pooled_output, MoE_type=MoE_type)
+            pooled_output = self.encode_proj(pooled_output, MoE_type_tensor=MoE_type_tensor)
         return sequence_output, pooled_output, hidden_states
 
     # TODO: make a super class for all encoders

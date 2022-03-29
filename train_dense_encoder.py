@@ -378,7 +378,7 @@ class BiEncoderTrainer(object):
                         ctx_attn_mask,
                         encoder_type=encoder_type,
                         representation_token_pos=rep_positions,
-                        MoE_type_list=biencoder_input.data_type,
+                        MoE_type_tensor=biencoder_input.data_type,
                     )
 
                 if q_dense is not None:
@@ -709,7 +709,7 @@ def _do_biencoder_fwd_pass(
             ctx_attn_mask,
             encoder_type=encoder_type,
             representation_token_pos=rep_positions,
-            MoE_type=input.data_type,
+            MoE_type_tensor=input.data_type,
         )
     else:
         with torch.no_grad():
@@ -722,7 +722,7 @@ def _do_biencoder_fwd_pass(
                 ctx_attn_mask,
                 encoder_type=encoder_type,
                 representation_token_pos=rep_positions,
-                MoE_type=input.data_type,
+                MoE_type_tensor=input.data_type,
             )
 
     local_q_vector, local_ctx_vectors = model_out
