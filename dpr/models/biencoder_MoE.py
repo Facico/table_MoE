@@ -36,6 +36,7 @@ BiEncoderBatch = collections.namedtuple(
         "is_positive",
         "hard_negatives",
         "encoder_type",
+        "data_type",
     ],
 )
 # TODO: it is only used by _select_span_with_token. Move them to utils
@@ -83,6 +84,7 @@ class BiEncoder(nn.Module):
         attn_mask: T,
         fix_encoder: bool = False,
         representation_token_pos=0,
+        MoE_type='text',
     ) -> (T, T, T):
         sequence_output = None
         pooled_output = None
@@ -95,6 +97,7 @@ class BiEncoder(nn.Module):
                         segments,
                         attn_mask,
                         representation_token_pos=representation_token_pos,
+                        MoE_type=MoE_type,
                     )
 
                 if sub_model.training:
@@ -106,6 +109,7 @@ class BiEncoder(nn.Module):
                     segments,
                     attn_mask,
                     representation_token_pos=representation_token_pos,
+                    MoE_type=MoE_type,
                 )
 
         return sequence_output, pooled_output, hidden_states
@@ -120,6 +124,7 @@ class BiEncoder(nn.Module):
         ctx_attn_mask: T,
         encoder_type: str = None,
         representation_token_pos=0,
+        MoE_type='text',
     ) -> Tuple[T, T]:
         q_encoder = self.question_model if encoder_type is None or encoder_type == "question" else self.ctx_model
         _q_seq, q_pooled_out, _q_hidden = self.get_representation(
@@ -129,6 +134,7 @@ class BiEncoder(nn.Module):
             question_attn_mask,
             self.fix_q_encoder,
             representation_token_pos=representation_token_pos,
+            MoE_type=MoE_type_list,
         )
 
         ctx_encoder = self.ctx_model if encoder_type is None or encoder_type == "ctx" else self.question_model
@@ -165,8 +171,11 @@ class BiEncoder(nn.Module):
         ctx_tensors = []
         positive_ctx_indices = []
         hard_neg_ctx_indices = []
-
+        MoE_type_list = []
         for sample in samples:
+            # add MoE type
+            MoE_type_list.append(sample.data_type)
+
             # ctx+ & [ctx-] composition
             # as of now, take the first(gold) ctx+ only
 
@@ -238,6 +247,7 @@ class BiEncoder(nn.Module):
             positive_ctx_indices,
             hard_neg_ctx_indices,
             "question",
+            MoE_type_list,
         )
 
     def load_state(self, saved_state: CheckpointState, strict: bool = True):

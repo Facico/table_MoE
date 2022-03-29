@@ -50,7 +50,7 @@ from ...modeling_utils import (
 # add MoE
 
 from ...moe_layer import (
-    Bias_hard_MoE,
+    Bias_hard_MoE_Linear,
     MoE_prune_linear_layer,
     LN_hard_MoE,
 )
@@ -72,7 +72,7 @@ _CHECKPOINT_FOR_DOC = "bert-base-uncased"
 _CONFIG_FOR_DOC = "BertConfig"
 _TOKENIZER_FOR_DOC = "BertTokenizer"
 
-BERT_PRETRAINED_MODEL_ARCHIVE_LIST = [
+MoE_BERT_PRETRAINED_MODEL_ARCHIVE_LIST = [
     "bert-base-uncased",
     "bert-large-uncased",
     "bert-base-cased",
@@ -99,7 +99,7 @@ BERT_PRETRAINED_MODEL_ARCHIVE_LIST = [
 ]
 
 
-def load_tf_weights_in_bert(model, config, tf_checkpoint_path):
+def MoE_load_tf_weights_in_bert(model, config, tf_checkpoint_path):
     """Load tf checkpoints in a pytorch model."""
     try:
         import re
@@ -172,7 +172,7 @@ def load_tf_weights_in_bert(model, config, tf_checkpoint_path):
     return model
 
 
-class BertEmbeddings(nn.Module):
+class MoE_BertEmbeddings(nn.Module):
     """Construct the embeddings from word, position and token_type embeddings."""
 
     def __init__(self, config):
@@ -232,7 +232,7 @@ class BertEmbeddings(nn.Module):
         return embeddings
 
 
-class BertSelfAttention(nn.Module):
+class MoE_BertSelfAttention(nn.Module):
     def __init__(self, config, position_embedding_type=None):
         super().__init__()
         if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
@@ -246,9 +246,9 @@ class BertSelfAttention(nn.Module):
         self.all_head_size = self.num_attention_heads * self.attention_head_size
 
         # add MoE
-        self.query = Bias_hard_MoE(config.hidden_size, self.all_head_size)
-        self.key = Bias_hard_MoE(config.hidden_size, self.all_head_size)
-        self.value = Bias_hard_MoE(config.hidden_size, self.all_head_size)
+        self.query = Bias_hard_MoE_Linear(config.hidden_size, self.all_head_size)
+        self.key = Bias_hard_MoE_Linear(config.hidden_size, self.all_head_size)
+        self.value = Bias_hard_MoE_Linear(config.hidden_size, self.all_head_size)
         """self.query = nn.Linear(config.hidden_size, self.all_head_size)
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)"""
@@ -364,10 +364,10 @@ class BertSelfAttention(nn.Module):
         return outputs
 
 
-class BertSelfOutput(nn.Module):
+class MoE_BertSelfOutput(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dense = Bias_hard_MoE(config.hidden_size, config.hidden_size)
+        self.dense = Bias_hard_MoE_Linear(config.hidden_size, config.hidden_size)
         self.LayerNorm = LN_hard_MoE(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
@@ -378,11 +378,11 @@ class BertSelfOutput(nn.Module):
         return hidden_states
 
 
-class BertAttention(nn.Module):
+class MoE_BertAttention(nn.Module):
     def __init__(self, config, position_embedding_type=None):
         super().__init__()
-        self.self = BertSelfAttention(config, position_embedding_type=position_embedding_type)
-        self.output = BertSelfOutput(config)
+        self.self = MoE_BertSelfAttention(config, position_embedding_type=position_embedding_type)
+        self.output = MoE_BertSelfOutput(config)
         self.pruned_heads = set()
 
     def prune_heads(self, heads):
@@ -435,10 +435,10 @@ class BertAttention(nn.Module):
         return outputs
 
 
-class BertIntermediate(nn.Module):
+class MoE_BertIntermediate(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dense = Bias_hard_MoE(config.hidden_size, config.intermediate_size)
+        self.dense = Bias_hard_MoE_Linear(config.hidden_size, config.intermediate_size)
         if isinstance(config.hidden_act, str):
             self.intermediate_act_fn = ACT2FN[config.hidden_act]
         else:
@@ -450,10 +450,10 @@ class BertIntermediate(nn.Module):
         return hidden_states
 
 
-class BertOutput(nn.Module):
+class MoE_BertOutput(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dense = Bias_hard_MoE(config.intermediate_size, config.hidden_size)
+        self.dense = Bias_hard_MoE_Linear(config.intermediate_size, config.hidden_size)
         self.LayerNorm = LN_hard_MoE(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
@@ -464,20 +464,20 @@ class BertOutput(nn.Module):
         return hidden_states
 
 
-class BertLayer(nn.Module):
+class MoE_BertLayer(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.chunk_size_feed_forward = config.chunk_size_feed_forward
         self.seq_len_dim = 1
-        self.attention = BertAttention(config)
+        self.attention = MoE_BertAttention(config)
         self.is_decoder = config.is_decoder
         self.add_cross_attention = config.add_cross_attention
         if self.add_cross_attention:
             if not self.is_decoder:
                 raise ValueError(f"{self} should be used as a decoder model if cross attention is added")
-            self.crossattention = BertAttention(config, position_embedding_type="absolute")
-        self.intermediate = BertIntermediate(config)
-        self.output = BertOutput(config)
+            self.crossattention = MoE_BertAttention(config, position_embedding_type="absolute")
+        self.intermediate = MoE_BertIntermediate(config)
+        self.output = MoE_BertOutput(config)
 
     def forward(
         self,
@@ -552,11 +552,11 @@ class BertLayer(nn.Module):
         return layer_output
 
 
-class BertEncoder(nn.Module):
+class MoE_BertEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
+        self.layer = nn.ModuleList([MoE_BertLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
 
     def forward(
@@ -654,10 +654,10 @@ class BertEncoder(nn.Module):
         )
 
 
-class BertPooler(nn.Module):
+class MoE_BertPooler(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dense = Bias_hard_MoE(config.hidden_size, config.hidden_size)
+        self.dense = Bias_hard_MoE_Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
 
     def forward(self, hidden_states: torch.Tensor, MoE_type='text') -> torch.Tensor:
@@ -669,10 +669,10 @@ class BertPooler(nn.Module):
         return pooled_output
 
 
-class BertPredictionHeadTransform(nn.Module):
+class MoE_BertPredictionHeadTransform(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dense = Bias_hard_MoE(config.hidden_size, config.hidden_size)
+        self.dense = Bias_hard_MoE_Linear(config.hidden_size, config.hidden_size)
         if isinstance(config.hidden_act, str):
             self.transform_act_fn = ACT2FN[config.hidden_act]
         else:
@@ -686,10 +686,10 @@ class BertPredictionHeadTransform(nn.Module):
         return hidden_states
 
 
-class BertLMPredictionHead(nn.Module):
+class MoE_BertLMPredictionHead(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.transform = BertPredictionHeadTransform(config)
+        self.transform = MoE_BertPredictionHeadTransform(config)
 
         # The output weights are the same as the input embeddings, but there is
         # an output-only bias for each token.
@@ -706,31 +706,31 @@ class BertLMPredictionHead(nn.Module):
         return hidden_states
 
 
-class BertOnlyMLMHead(nn.Module):
+class MoE_BertOnlyMLMHead(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.predictions = BertLMPredictionHead(config)
+        self.predictions = MoE_BertLMPredictionHead(config)
 
     def forward(self, sequence_output: torch.Tensor) -> torch.Tensor:
         prediction_scores = self.predictions(sequence_output)
         return prediction_scores
 
 
-class BertOnlyNSPHead(nn.Module):
+class MoE_BertOnlyNSPHead(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.seq_relationship = Bias_hard_MoE(config.hidden_size, 2)
+        self.seq_relationship = Bias_hard_MoE_Linear(config.hidden_size, 2)
 
     def forward(self, pooled_output, MoE_type='text'):
         seq_relationship_score = self.seq_relationship(pooled_output, MoE_type=MoE_type)
         return seq_relationship_score
 
 
-class BertPreTrainingHeads(nn.Module):
+class MoE_BertPreTrainingHeads(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.predictions = BertLMPredictionHead(config)
-        self.seq_relationship = Bias_hard_MoE(config.hidden_size, 2)
+        self.predictions = MoE_BertLMPredictionHead(config)
+        self.seq_relationship = Bias_hard_MoE_Linear(config.hidden_size, 2)
 
     def forward(self, sequence_output, pooled_output, MoE_type='text'):
         prediction_scores = self.predictions(sequence_output)
@@ -738,14 +738,14 @@ class BertPreTrainingHeads(nn.Module):
         return prediction_scores, seq_relationship_score
 
 
-class BertPreTrainedModel(PreTrainedModel):
+class MoE_BertPreTrainedModel(PreTrainedModel):
     """
     An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
     models.
     """
 
     config_class = BertConfig
-    load_tf_weights = load_tf_weights_in_bert
+    load_tf_weights = MoE_load_tf_weights_in_bert
     base_model_prefix = "bert"
     supports_gradient_checkpointing = True
     _keys_to_ignore_on_load_missing = [r"position_ids"]
@@ -772,7 +772,7 @@ class BertPreTrainedModel(PreTrainedModel):
 
 
 @dataclass
-class BertForPreTrainingOutput(ModelOutput):
+class MoE_BertForPreTrainingOutput(ModelOutput):
     """
     Output type of [`BertForPreTraining`].
 
@@ -875,7 +875,7 @@ BERT_INPUTS_DOCSTRING = r"""
     "The bare Bert Model transformer outputting raw hidden-states without any specific head on top.",
     BERT_START_DOCSTRING,
 )
-class BertModel(BertPreTrainedModel):
+class MoE_BertModel(MoE_BertPreTrainedModel):
     """
 
     The model can behave as an encoder (with only self-attention) as well as a decoder, in which case a layer of
@@ -892,10 +892,10 @@ class BertModel(BertPreTrainedModel):
         super().__init__(config)
         self.config = config
 
-        self.embeddings = BertEmbeddings(config)
-        self.encoder = BertEncoder(config)
+        self.embeddings = MoE_BertEmbeddings(config)
+        self.encoder = MoE_BertEncoder(config)
 
-        self.pooler = BertPooler(config) if add_pooling_layer else None
+        self.pooler = MoE_BertPooler(config) if add_pooling_layer else None
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1060,12 +1060,12 @@ class BertModel(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class BertForPreTraining(BertPreTrainedModel):
+class MoE_BertForPreTraining(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        self.bert = BertModel(config)
-        self.cls = BertPreTrainingHeads(config)
+        self.bert = MoE_BertModel(config)
+        self.cls = MoE_BertPreTrainingHeads(config)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1164,7 +1164,7 @@ class BertForPreTraining(BertPreTrainedModel):
 @add_start_docstrings(
     """Bert Model with a `language modeling` head on top for CLM fine-tuning.""", BERT_START_DOCSTRING
 )
-class BertLMHeadModel(BertPreTrainedModel):
+class MoE_BertLMHeadModel(BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
@@ -1175,8 +1175,8 @@ class BertLMHeadModel(BertPreTrainedModel):
         if not config.is_decoder:
             logger.warning("If you want to use `BertLMHeadModel` as a standalone, add `is_decoder=True.`")
 
-        self.bert = BertModel(config, add_pooling_layer=False)
-        self.cls = BertOnlyMLMHead(config)
+        self.bert = MoE_BertModel(config, add_pooling_layer=False)
+        self.cls = MoE_BertOnlyMLMHead(config)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1315,7 +1315,7 @@ class BertLMHeadModel(BertPreTrainedModel):
 
 
 @add_start_docstrings("""Bert Model with a `language modeling` head on top.""", BERT_START_DOCSTRING)
-class BertForMaskedLM(BertPreTrainedModel):
+class MoE_BertForMaskedLM(BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
@@ -1329,8 +1329,8 @@ class BertForMaskedLM(BertPreTrainedModel):
                 "bi-directional self-attention."
             )
 
-        self.bert = BertModel(config, add_pooling_layer=False)
-        self.cls = BertOnlyMLMHead(config)
+        self.bert = MoE_BertModel(config, add_pooling_layer=False)
+        self.cls = MoE_BertOnlyMLMHead(config)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1426,12 +1426,12 @@ class BertForMaskedLM(BertPreTrainedModel):
     """Bert Model with a `next sentence prediction (classification)` head on top.""",
     BERT_START_DOCSTRING,
 )
-class BertForNextSentencePrediction(BertPreTrainedModel):
+class MoE_BertForNextSentencePrediction(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        self.bert = BertModel(config)
-        self.cls = BertOnlyNSPHead(config)
+        self.bert = MoE_BertModel(config)
+        self.cls = MoE_BertOnlyNSPHead(config)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1530,18 +1530,18 @@ class BertForNextSentencePrediction(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class BertForSequenceClassification(BertPreTrainedModel):
+class MoE_BertForSequenceClassification(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
 
-        self.bert = BertModel(config)
+        self.bert = MoE_BertModel(config)
         classifier_dropout = (
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
-        self.classifier = Bias_hard_MoE(config.hidden_size, config.num_labels)
+        self.classifier = Bias_hard_MoE_Linear(config.hidden_size, config.num_labels)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1633,16 +1633,16 @@ class BertForSequenceClassification(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class BertForMultipleChoice(BertPreTrainedModel):
+class MoE_BertForMultipleChoice(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        self.bert = BertModel(config)
+        self.bert = MoE_BertModel(config)
         classifier_dropout = (
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
-        self.classifier = Bias_hard_MoE(config.hidden_size, 1)
+        self.classifier = Bias_hard_MoE_Linear(config.hidden_size, 1)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1729,7 +1729,7 @@ class BertForMultipleChoice(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class BertForTokenClassification(BertPreTrainedModel):
+class MoE_BertForTokenClassification(BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
 
@@ -1737,12 +1737,12 @@ class BertForTokenClassification(BertPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        self.bert = BertModel(config, add_pooling_layer=False)
+        self.bert = MoE_BertModel(config, add_pooling_layer=False)
         classifier_dropout = (
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
-        self.classifier =Bias_hard_MoE(config.hidden_size, config.num_labels)
+        self.classifier =Bias_hard_MoE_Linear(config.hidden_size, config.num_labels)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1815,7 +1815,7 @@ class BertForTokenClassification(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class BertForQuestionAnswering(BertPreTrainedModel):
+class MoE_BertForQuestionAnswering(BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
 
@@ -1823,8 +1823,8 @@ class BertForQuestionAnswering(BertPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        self.bert = BertModel(config, add_pooling_layer=False)
-        self.qa_outputs = Bias_hard_MoE(config.hidden_size, config.num_labels)
+        self.bert = MoE_BertModel(config, add_pooling_layer=False)
+        self.qa_outputs = Bias_hard_MoE_Linear(config.hidden_size, config.num_labels)
 
         # Initialize weights and apply final processing
         self.post_init()

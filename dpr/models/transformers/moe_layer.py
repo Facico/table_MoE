@@ -5,11 +5,12 @@ from torch.nn.parameter import Parameter
 import torch.nn.functional as F
 from typing import Union, List, Tuple
 
-class Bias_hard_MoE(nn.Linear):
+# MoE_type_list: 0 --> text  1 --> table
+class Bias_hard_MoE_Linear(nn.Linear):
     def __init__(self, in_features: int, out_features: int, bias: bool = True,
                  device=None, dtype=None):
         factory_kwargs = {'device': device, 'dtype': dtype}
-        super(Bias_hard_MoE, self).__init__(in_features, out_features, bias)
+        super(Bias_hard_MoE_Linear, self).__init__(in_features, out_features, bias)
         if self.bias is not None:
             
             self.bias_table = Parameter(torch.empty(out_features, **factory_kwargs))
@@ -24,13 +25,27 @@ class Bias_hard_MoE(nn.Linear):
             self.bias_text.copy_(b.contiguous())
             self.bias_text.requires_grad = True
     
-    def forward(self, input: Tensor, MoE_type='text') -> Tensor:
-        if MoE_type == 'text':
+    def forward(self, input: Tensor, MoE_type_list:Tensor) -> Tensor:
+        output = torch.mm(input, self.weight)
+        batch_size = input.shape[0]
+
+        table_bias_w = torch.diag_embed(MoE_type_list)
+        text_bias_w = torch.diag_embed(1 - MoE_type_list)
+
+        table_bias = torch.mm(table_bias_w, self.bias_table.expand(batch_size, -1))
+        text_bias = torch.mm(text_bias_w, self.bias_table.expand(batch_size, -1))
+
+        output = outupt + table_bias + text_bias
+        # [batch size, out_features]
+        """if MoE_type == 'text':
+
             return F.linear(input, self.weight, self.bias_text)
         elif MoE_type == 'table':
             return F.linear(input, self.weight, self.bias_table)
         else:
-            raise ValueError(f"unknown type {MoE_type}")
+            raise ValueError(f"unknown type {MoE_type}")"""
+        
+        return output
 
 def MoE_prune_linear_layer(layer: nn.Linear, index: torch.LongTensor, dim: int = 0) -> nn.Linear:
     """
@@ -55,7 +70,7 @@ def MoE_prune_linear_layer(layer: nn.Linear, index: torch.LongTensor, dim: int =
             b = layer.bias[index].clone().detach()
     new_size = list(layer.weight.size())
     new_size[dim] = len(index)
-    new_layer = Bias_hard_MoE(new_size[1], new_size[0], bias=layer.bias is not None).to(layer.weight.device)
+    new_layer = Bias_hard_MoE_Linear(new_size[1], new_size[0], bias=layer.bias is not None).to(layer.weight.device)
     new_layer.weight.requires_grad = False
     new_layer.weight.copy_(W.contiguous())
     new_layer.weight.requires_grad = True
@@ -93,15 +108,26 @@ class LN_hard_MoE(nn.LayerNorm):
             self.bias_text.requires_grad = True
             
 
-    def forward(self, input: Tensor, MoE_type='text') -> Tensor:
-        if MoE_type == 'text':
+    def forward(self, input: Tensor, MoE_type_list:Tensor) -> Tensor:
+        out_text = F.layer_norm(
+            input, self.normalized_shape, self.weight, self.bias_text, self.eps)
+        out_table = F.layer_norm(
+            input, self.normalized_shape, self.weight, self.bias_table, self.eps)
+        size_index = [out_text.shape[0]] + [1] * (len(out_text.shape) - 1)
+
+        one_index = MoE_type_list.view(*size_index)
+
+        output = out_text * (1 - one_index) + out_table * one_index
+
+        return output
+        """if MoE_type == 'text':
             return F.layer_norm(
             input, self.normalized_shape, self.weight, self.bias_text, self.eps)
         elif MoE_type == 'table':
             return F.layer_norm(
             input, self.normalized_shape, self.weight, self.bias_table, self.eps)
         else:
-            raise ValueError(f"unknown type {MoE_type}")
+            raise ValueError(f"unknown type {MoE_type}")"""
 if __name__ == '__main__':
-    m = Bias_hard_MoE(10, 1)
+    m = Bias_hard_MoE_Linear(10, 1)
     print(m.__dict__)

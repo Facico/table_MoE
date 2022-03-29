@@ -30,7 +30,7 @@ if is_tokenizers_available():
     _import_structure["tokenization_bert_fast"] = ["BertTokenizerFast"]
 
 if is_torch_available():
-    _import_structure["modeling_bert_MoE"] = [
+    _import_structure["modeling_bert"] = [
         "BERT_PRETRAINED_MODEL_ARCHIVE_LIST",
         "BertForMaskedLM",
         "BertForMultipleChoice",
@@ -45,6 +45,25 @@ if is_torch_available():
         "BertPreTrainedModel",
         "load_tf_weights_in_bert",
     ]
+
+# add MoE
+if is_torch_available():
+    _import_structure["modeling_bert_MoE"] = [
+        "MoE_BERT_PRETRAINED_MODEL_ARCHIVE_LIST",
+        "MoE_BertForMaskedLM",
+        "MoE_BertForMultipleChoice",
+        "MoE_BertForNextSentencePrediction",
+        "MoE_BertForPreTraining",
+        "MoE_BertForQuestionAnswering",
+        "MoE_BertForSequenceClassification",
+        "MoE_BertForTokenClassification",
+        "MoE_BertLayer",
+        "MoE_BertLMHeadModel",
+        "MoE_BertModel",
+        "MoE_BertPreTrainedModel",
+        "MoE_load_tf_weights_in_bert",
+    ]
+    
 
 if is_tf_available():
     _import_structure["modeling_tf_bert"] = [
