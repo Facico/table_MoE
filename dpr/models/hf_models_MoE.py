@@ -19,11 +19,12 @@ from torch import nn
 
 
 if transformers.__version__.startswith("4"):
-    from transformers import BertConfig, MoE_BertModel   # from modeling_bert_MoE
+    from dpr.models.transformers.models.bert.modeling_bert_MoE import BertConfig, MoE_BertModel   # from modeling_bert_MoE
     from transformers import AdamW
-    from transformers import BertTokenizer
-    from transformers import RobertaTokenizer
-    from transformers import Bias_hard_MoE_Linear
+    from dpr.models.transformers.models.bert.tokenization_bert import BertTokenizer
+    from dpr.models.transformers.models.roberta.tokenization_roberta import RobertaTokenizer
+    from dpr.models.transformers.moe_layer import Bias_hard_MoE_Linear
+    from dpr.models.transformers.modeling_outputs import BaseModelOutputWithPoolingAndCrossAttentions
 else:
     from transformers.modeling_bert_MoE import BertConfig, MoE_BertModel
     from transformers.optimization import AdamW
@@ -31,22 +32,23 @@ else:
     from transformers.tokenization_roberta import RobertaTokenizer
 
 from dpr.utils.data_utils import Tensorizer
-from dpr.models.biencoder import BiEncoder
+from dpr.models.biencoder_MoE import BiEncoder_MoE
 from .reader import Reader
 
 logger = logging.getLogger(__name__)
 
+transformers.logging.set_verbosity_error()
 
 def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
-    question_encoder = HFBertEncoder.init_encoder(
+    question_encoder = MoE_HFBertEncoder.init_encoder(
         cfg.encoder.pretrained_model_cfg,
         projection_dim=cfg.encoder.projection_dim,
         dropout=dropout,
         pretrained=cfg.encoder.pretrained,
         **kwargs
     )
-    ctx_encoder = HFBertEncoder.init_encoder(
+    ctx_encoder = MoE_HFBertEncoder.init_encoder(
         cfg.encoder.pretrained_model_cfg,
         projection_dim=cfg.encoder.projection_dim,
         dropout=dropout,
@@ -55,7 +57,7 @@ def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
     )
 
     fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
-    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+    biencoder = BiEncoder_MoE(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
 
     optimizer = (
         get_optimizer(
@@ -74,7 +76,7 @@ def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
 
 def get_bert_reader_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
-    encoder = HFBertEncoder.init_encoder(
+    encoder = MoE_HFBertEncoder.init_encoder(
         cfg.encoder.pretrained_model_cfg,
         projection_dim=cfg.encoder.projection_dim,
         dropout=dropout,
@@ -207,7 +209,7 @@ class MoE_HFBertEncoder(MoE_BertModel):
     @classmethod
     def init_encoder(
         cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
-    ) -> BertModel:
+    ) -> MoE_BertModel:
         logger.info("Initializing HF BERT Encoder. cfg_name=%s", cfg_name)
         cfg = BertConfig.from_pretrained(cfg_name if cfg_name else "bert-base-uncased")
         if dropout != 0:
@@ -250,7 +252,7 @@ class MoE_HFBertEncoder(MoE_BertModel):
         # HF >4.0 version support
         if transformers.__version__.startswith("4") and isinstance(
             out,
-            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+            BaseModelOutputWithPoolingAndCrossAttentions,
         ):
             sequence_output = out.last_hidden_state
             pooled_output = None

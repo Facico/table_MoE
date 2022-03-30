@@ -3105,12 +3105,13 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
                     )
                 logger.error(error_msg)
         elif truncation_strategy == TruncationStrategy.LONGEST_FIRST:
-            logger.warning(
+            # remove the warning
+            """logger.warning(
                 f"Be aware, overflowing tokens are not returned for the setting you have chosen,"
                 f" i.e. sequence pairs with the '{TruncationStrategy.LONGEST_FIRST.value}' "
                 f"truncation strategy. So the returned list will always be empty even if some "
                 f"tokens have been removed."
-            )
+            )"""
             for _ in range(num_tokens_to_remove):
                 if pair_ids is None or len(ids) > len(pair_ids):
                     if self.truncation_side == "right":

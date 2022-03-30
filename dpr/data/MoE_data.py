@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 
 from dpr.data.tables import Table
 from dpr.utils.data_utils import read_data_from_json_files, Dataset
-from dpr.data.biencoder import *
+from dpr.data.biencoder_data import *
 
 logger = logging.getLogger(__name__)
 BiEncoderPassage = collections.namedtuple("BiEncoderPassage", ["text", "title", "data_type"])

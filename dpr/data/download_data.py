@@ -104,6 +104,20 @@ RESOURCES_MAP = {
         "desc": "NQ tapas dev table",
         "license_files": NQ_LICENSE_FILES,
     },
+    "data.retriever.dpr_MoE_train":{
+        "s3_url": "dpr_MoE_train.json",
+        "original_ext": ".json",
+        "compressed": False,
+        "desc": "table and data train",
+        "license_files": NQ_LICENSE_FILES,
+    },
+    "data.retriever.dpr_MoE_dev":{
+        "s3_url": "dpr_MoE_train.json",
+        "original_ext": ".json",
+        "compressed": False,
+        "desc": "table and data dev",
+        "license_files": NQ_LICENSE_FILES,
+    },
     "data.retriever.tapas_dpr_simple_train":{
         "s3_url": "tapas_dpr_simple_train.json",
         "original_ext": ".json",

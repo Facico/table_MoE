@@ -19,6 +19,13 @@ nq_table_dev:
   _target_: dpr.data.biencoder_data.JsonQADataset
   file: data.retriever.table_dev
 
+dpr_MoE_train:
+  _target_: dpr.data.MoE_data.JsonQADataset_MoE
+  file: data.retriever.dpr_MoE_train
+dpr_MoE_dev:
+  _target_: dpr.data.MoE_data.JsonQADataset_MoE
+  file: data.retriever.dpr_MoE_dev
+
 tapas_dpr_train:
   _target_: dpr.data.biencoder_data.JsonQADataset
   file: data.retriever.tapas_dpr_train

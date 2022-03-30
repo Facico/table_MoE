@@ -25,8 +25,18 @@ class Bias_hard_MoE_Linear(nn.Linear):
             self.bias_text.copy_(b.contiguous())
             self.bias_text.requires_grad = True
     
-    def forward(self, input: Tensor, MoE_type_tensor:Tensor) -> Tensor:
-        output = torch.mm(input, self.weight)
+    def forward(self, input: Tensor, MoE_type_tensor=None) -> Tensor:
+        if MoE_type_tensor is None:
+            return F.linear(input, self.weight, self.bias_text)
+        
+        out_text =  F.linear(input, self.weight, self.bias_text)
+        out_table =  F.linear(input, self.weight, self.bias_table)
+        size_index = [out_text.shape[0]] + [1] * (len(out_text.shape) - 1)
+
+        one_index = MoE_type_tensor.view(*size_index)
+
+        output = out_text * (1 - one_index) + out_table * one_index
+        """output = torch.mm(input, self.weight.t())
         batch_size = input.shape[0]
 
         table_bias_w = torch.diag_embed(MoE_type_tensor)
@@ -35,7 +45,7 @@ class Bias_hard_MoE_Linear(nn.Linear):
         table_bias = torch.mm(table_bias_w, self.bias_table.expand(batch_size, -1))
         text_bias = torch.mm(text_bias_w, self.bias_table.expand(batch_size, -1))
 
-        output = outupt + table_bias + text_bias
+        output = output + table_bias + text_bias"""
         # [batch size, out_features]
         """if MoE_type == 'text':
 
@@ -108,7 +118,10 @@ class LN_hard_MoE(nn.LayerNorm):
             self.bias_text.requires_grad = True
             
 
-    def forward(self, input: Tensor, MoE_type_tensor:Tensor) -> Tensor:
+    def forward(self, input: Tensor, MoE_type_tensor=None) -> Tensor:
+        if MoE_type_tensor is None:
+            return F.layer_norm(
+            input, self.normalized_shape, self.weight, self.bias_text, self.eps)
         out_text = F.layer_norm(
             input, self.normalized_shape, self.weight, self.bias_text, self.eps)
         out_table = F.layer_norm(
@@ -129,5 +142,13 @@ class LN_hard_MoE(nn.LayerNorm):
         else:
             raise ValueError(f"unknown type {MoE_type}")"""
 if __name__ == '__main__':
-    m = Bias_hard_MoE_Linear(10, 1)
-    print(m.__dict__)
+    m = Bias_hard_MoE_Linear(10, 2)
+    print(m.weight.shape)
+    testx = torch.randn(5,10)
+    MoE_type_list = torch.tensor([0.0,1.0,1.0,0.0,0.0])
+    out = m(testx, MoE_type_tensor=MoE_type_list)
+
+    """m = LN_hard_MoE(10)
+    testx = torch.randn(5,10)
+    MoE_type_list = torch.tensor([0.0,1.0,1.0,0.0,0.0])
+    out = m(testx, MoE_type_tensor=MoE_type_list)"""

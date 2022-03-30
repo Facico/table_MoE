@@ -25,7 +25,8 @@ from torch import Tensor as T
 from torch import nn
 
 from dpr.models import init_biencoder_components
-from dpr.models.biencoder import BiEncoderNllLoss, BiEncoderBatch
+#from dpr.models.biencoder import BiEncoderNllLoss, BiEncoderBatch
+from dpr.models.biencoder_MoE import BiEncoderNllLoss, BiEncoderBatch_MoE
 from dpr.options import (
     setup_cfg_gpu,
     set_seed,
@@ -239,6 +240,7 @@ class BiEncoderTrainer(object):
         log_result_step = cfg.train.log_batch_step
         batches = 0
         dataset = 0
+
         biencoder = get_model_obj(self.biencoder)
 
         for i, samples_batch in enumerate(data_iterator.iterate_ds_data()):
@@ -686,7 +688,7 @@ def _print_norms(model):
 
 def _do_biencoder_fwd_pass(
     model: nn.Module,
-    input: BiEncoderBatch,
+    input: BiEncoderBatch_MoE,
     tensorizer: Tensorizer,
     cfg,
     encoder_type: str,
@@ -694,7 +696,7 @@ def _do_biencoder_fwd_pass(
     loss_scale: float = None,
 ) -> Tuple[torch.Tensor, int]:
 
-    input = BiEncoderBatch(**move_to_device(input._asdict(), cfg.device))
+    input = BiEncoderBatch_MoE(**move_to_device(input._asdict(), cfg.device))
 
     q_attn_mask = tensorizer.get_attn_mask(input.question_ids)
     ctx_attn_mask = tensorizer.get_attn_mask(input.context_ids)

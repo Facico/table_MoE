@@ -26,7 +26,7 @@ from dpr.utils.model_utils import CheckpointState
 
 logger = logging.getLogger(__name__)
 
-BiEncoderBatch = collections.namedtuple(
+BiEncoderBatch_MoE = collections.namedtuple(
     "BiENcoderInput",
     [
         "question_ids",
@@ -60,7 +60,7 @@ def cosine_scores(q_vector: T, ctx_vectors: T):
     return F.cosine_similarity(q_vector, ctx_vectors, dim=1)
 
 
-class BiEncoder(nn.Module):
+class BiEncoder_MoE(nn.Module):
     """Bi-Encoder model component. Encapsulates query/question and context/passage encoders."""
 
     def __init__(
@@ -70,7 +70,7 @@ class BiEncoder(nn.Module):
         fix_q_encoder: bool = False,
         fix_ctx_encoder: bool = False,
     ):
-        super(BiEncoder, self).__init__()
+        super(BiEncoder_MoE, self).__init__()
         self.question_model = question_model
         self.ctx_model = ctx_model
         self.fix_q_encoder = fix_q_encoder
@@ -84,7 +84,7 @@ class BiEncoder(nn.Module):
         attn_mask: T,
         fix_encoder: bool = False,
         representation_token_pos=0,
-        MoE_type_tensor,
+        MoE_type_tensor=None,
     ) -> (T, T, T):
         sequence_output = None
         pooled_output = None
@@ -134,12 +134,12 @@ class BiEncoder(nn.Module):
             question_attn_mask,
             self.fix_q_encoder,
             representation_token_pos=representation_token_pos,
-            MoE_type_tensor=MoE_type_list,
+            MoE_type_tensor=None,
         )
 
         ctx_encoder = self.ctx_model if encoder_type is None or encoder_type == "ctx" else self.question_model
         _ctx_seq, ctx_pooled_out, _ctx_hidden = self.get_representation(
-            ctx_encoder, context_ids, ctx_segments, ctx_attn_mask, self.fix_ctx_encoder
+            ctx_encoder, context_ids, ctx_segments, ctx_attn_mask, self.fix_ctx_encoder, MoE_type_tensor=MoE_type_tensor
         )
 
         return q_pooled_out, ctx_pooled_out
@@ -155,7 +155,7 @@ class BiEncoder(nn.Module):
         shuffle_positives: bool = False,
         hard_neg_fallback: bool = True,
         query_token: str = None,
-    ) -> BiEncoderBatch:
+    ) -> BiEncoderBatch_MoE:
         """
         Creates a batch of the biencoder training tuple.
         :param samples: list of BiEncoderSample-s to create the batch for
@@ -171,11 +171,11 @@ class BiEncoder(nn.Module):
         ctx_tensors = []
         positive_ctx_indices = []
         hard_neg_ctx_indices = []
-        MoE_type_list = []
+        MoE_type_tensors = []
+        positive_MoE_type_list = []
+        negative_MoE_type_list = []
         type_to_int = {'text': 0, 'table': 1}
         for sample in samples:
-            # add MoE type
-            MoE_type_list.append(type_to_int[sample.data_type])
 
             # ctx+ & [ctx-] composition
             # as of now, take the first(gold) ctx+ only
@@ -211,8 +211,15 @@ class BiEncoder(nn.Module):
                 tensorizer.text_to_tensor(ctx.text, title=ctx.title if (insert_title and ctx.title) else None)
                 for ctx in all_ctxs
             ]
+            # add  MoE type
+            sample_MoE_type_tensors = torch.tensor([
+                type_to_int[ctx.data_type]
+                for ctx in all_ctxs
+            ])
 
             ctx_tensors.extend(sample_ctxs_tensors)
+            MoE_type_tensors.extend(sample_MoE_type_tensors)
+
             positive_ctx_indices.append(current_ctxs_len)
             hard_neg_ctx_indices.append(
                 [
@@ -235,14 +242,17 @@ class BiEncoder(nn.Module):
                 question_tensors.append(tensorizer.text_to_tensor(question))
 
         ctxs_tensor = torch.cat([ctx.view(1, -1) for ctx in ctx_tensors], dim=0)
+        MoE_type_tensor =  torch.cat([ctx.view(1, -1) for ctx in MoE_type_tensors], dim=0)
+
+        #print(MoE_type_tensor)
         questions_tensor = torch.cat([q.view(1, -1) for q in question_tensors], dim=0)
 
         ctx_segments = torch.zeros_like(ctxs_tensor)
         question_segments = torch.zeros_like(questions_tensor)
 
-        MoE_type_tensor = torch.tensor(MoE_type_list)
+        
 
-        return BiEncoderBatch(
+        return BiEncoderBatch_MoE(
             questions_tensor,
             question_segments,
             ctxs_tensor,

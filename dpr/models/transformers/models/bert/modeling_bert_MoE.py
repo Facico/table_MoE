@@ -936,7 +936,7 @@ class MoE_BertModel(MoE_BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        MoE_type_tensor,
+        MoE_type_tensor=None,
     ) -> Union[Tuple, BaseModelOutputWithPoolingAndCrossAttentions]:
         r"""
         encoder_hidden_states  (`torch.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):
@@ -1060,7 +1060,7 @@ class MoE_BertModel(MoE_BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class MoE_BertForPreTraining(BertPreTrainedModel):
+class MoE_BertForPreTraining(MoE_BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
@@ -1077,7 +1077,7 @@ class MoE_BertForPreTraining(BertPreTrainedModel):
         self.cls.predictions.decoder = new_embeddings
 
     @add_start_docstrings_to_model_forward(BERT_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
-    @replace_return_docstrings(output_type=BertForPreTrainingOutput, config_class=_CONFIG_FOR_DOC)
+    @replace_return_docstrings(output_type=MoE_BertForPreTrainingOutput, config_class=_CONFIG_FOR_DOC)
     def forward(
         self,
         input_ids: Optional[torch.Tensor] = None,
@@ -1091,7 +1091,7 @@ class MoE_BertForPreTraining(BertPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-    ) -> Union[Tuple, BertForPreTrainingOutput]:
+    ) -> Union[Tuple, MoE_BertForPreTrainingOutput]:
         r"""
             labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
                 Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
@@ -1152,7 +1152,7 @@ class MoE_BertForPreTraining(BertPreTrainedModel):
             output = (prediction_scores, seq_relationship_score) + outputs[2:]
             return ((total_loss,) + output) if total_loss is not None else output
 
-        return BertForPreTrainingOutput(
+        return MoE_BertForPreTrainingOutput(
             loss=total_loss,
             prediction_logits=prediction_scores,
             seq_relationship_logits=seq_relationship_score,
@@ -1164,7 +1164,7 @@ class MoE_BertForPreTraining(BertPreTrainedModel):
 @add_start_docstrings(
     """Bert Model with a `language modeling` head on top for CLM fine-tuning.""", BERT_START_DOCSTRING
 )
-class MoE_BertLMHeadModel(BertPreTrainedModel):
+class MoE_BertLMHeadModel(MoE_BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
@@ -1315,7 +1315,7 @@ class MoE_BertLMHeadModel(BertPreTrainedModel):
 
 
 @add_start_docstrings("""Bert Model with a `language modeling` head on top.""", BERT_START_DOCSTRING)
-class MoE_BertForMaskedLM(BertPreTrainedModel):
+class MoE_BertForMaskedLM(MoE_BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
@@ -1426,7 +1426,7 @@ class MoE_BertForMaskedLM(BertPreTrainedModel):
     """Bert Model with a `next sentence prediction (classification)` head on top.""",
     BERT_START_DOCSTRING,
 )
-class MoE_BertForNextSentencePrediction(BertPreTrainedModel):
+class MoE_BertForNextSentencePrediction(MoE_BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
@@ -1530,7 +1530,7 @@ class MoE_BertForNextSentencePrediction(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class MoE_BertForSequenceClassification(BertPreTrainedModel):
+class MoE_BertForSequenceClassification(MoE_BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
@@ -1633,7 +1633,7 @@ class MoE_BertForSequenceClassification(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class MoE_BertForMultipleChoice(BertPreTrainedModel):
+class MoE_BertForMultipleChoice(MoE_BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
@@ -1729,7 +1729,7 @@ class MoE_BertForMultipleChoice(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class MoE_BertForTokenClassification(BertPreTrainedModel):
+class MoE_BertForTokenClassification(MoE_BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
 
@@ -1815,7 +1815,7 @@ class MoE_BertForTokenClassification(BertPreTrainedModel):
     """,
     BERT_START_DOCSTRING,
 )
-class MoE_BertForQuestionAnswering(BertPreTrainedModel):
+class MoE_BertForQuestionAnswering(MoE_BertPreTrainedModel):
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
 

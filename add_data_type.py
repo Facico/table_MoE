@@ -1,5 +1,6 @@
 import json
 from tqdm import tqdm
+import random
 
 def add_type(data, data_type='text'):
     new_data = []
@@ -16,15 +17,22 @@ def add_type(data, data_type='text'):
     return new_data
 if __name__ == '__main__':
     # text
-    json_file = '/data2/private/fanchenghao/DPR/downloads/data/retriever/biencoder-nq-train.json'
-    data = json.load(open(json_file, 'r'))
-    new_data = add_type(data, data_type="text")
-    with open('/data2/private/fanchenghao/DPR/downloads/data/retriever/biencoder-nq-train_MoE.json', 'w') as f:
-        json.dump(new_data, f)
+    type_list = ['train', 'dev', 'test']
+    for typex in type_list:
+        if typex == 'test':
+            break
+        json_file = '/data2/private/fanchenghao/DPR/downloads/data/retriever/biencoder-nq-{}.json'.format(typex)
+        data = json.load(open(json_file, 'r'))
+        new_data_text = add_type(data, data_type="text")
 
-    json_file = '/data2/private/fanchenghao/DPR/downloads/data/retriever/dpr_tapas_dpr_mine_train.json'
-    data = json.load(open(json_file, 'r'))
-    new_data = add_type(data, data_type="table")
-    with open('/data2/private/fanchenghao/DPR/downloads/data/retriever/dpr_tapas_dpr_mine_train_MoE.json', 'w') as f:
-        json.dump(new_data, f)
+        json_file = '/data2/private/fanchenghao/DPR/downloads/data/retriever/dpr_tapas_dpr_mine_{}.json'.format(typex)
+        data = json.load(open(json_file, 'r'))
+        new_data_table = add_type(data, data_type="table")
+
+        new_data = new_data_text + new_data_table
+        random.shuffle(new_data)
+
+        with open('/data2/private/fanchenghao/DPR/downloads/data/retriever/dpr_MoE_{}.json'.format(typex), 'w') as f:
+            json.dump(new_data, f)
+
 

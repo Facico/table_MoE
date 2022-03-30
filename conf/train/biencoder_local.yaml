@@ -18,7 +18,7 @@ gradient_accumulation_steps: 1
 
 # Total number of training epochs to perform.
 num_train_epochs: 40
-eval_per_epoch: 1
+eval_per_epoch: 4 #1
 hard_negatives: 1
 other_negatives: 0
 val_av_rank_hard_neg: 30
