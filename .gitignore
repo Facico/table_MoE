@@ -9,7 +9,7 @@ condenser/embeddings-*
 condenser/model_*/
 README.md
 condenser/.cache/
-condenser/cc_table_text_nq_test/
+condenser/cc_table_text_nq_test
 
 *.txt
 *.json
