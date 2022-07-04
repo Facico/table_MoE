@@ -1,0 +1,2 @@
+python tabfact_preprocess.py
+python nq_table_bm25.py

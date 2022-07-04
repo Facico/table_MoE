@@ -1,0 +1,15 @@
+Verbalizer/
+outputs/
+text_raw_table_bert/
+condenser/temp/
+condenser/nq-*/
+condenser/intermediate/
+condenser/UDT_QA
+condenser/embeddings-*
+condenser/model_*/
+
+*.txt
+*.json
+*.teIn
+*.ckpt
+*.ckpt.1
