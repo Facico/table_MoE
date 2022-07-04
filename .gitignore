@@ -7,9 +7,13 @@ condenser/intermediate/
 condenser/UDT_QA
 condenser/embeddings-*
 condenser/model_*/
+README.md
+condenser/.cache/
+condenser/cc_table_text_nq_test/
 
 *.txt
 *.json
 *.teIn
 *.ckpt
 *.ckpt.1
+*.log
