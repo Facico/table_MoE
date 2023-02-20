@@ -1,4 +1,8 @@
-<<<<<<< HEAD
+在DPR基础上编写，针对text和table的联合检索
+- 通过bias、position embedding不同（text bias和table bias）融合两个
+- 通过两个encoder不同（bert+tapas）融合两个
+
+两种方法都有提升，hit@1-hit@10提升比较多，hit@20之后提升效果不大
 =======
 # Dense Passage Rertriever
 ------------------------------------------------------------------------------------------------------------------
@@ -215,4 +219,4 @@ We provide all input and intermediate results for e2e pipeline for NQ dataset an
 
 #### License
 DPR is CC-BY-NC 4.0 licensed as of now. 
->>>>>>> Update README.md
+
