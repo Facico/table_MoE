@@ -10,6 +10,7 @@ class ModelArguments:
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     table_model_name_or_path: str = field(
+        default=None,
         metadata={"help": "Path to pretrained table model or table model identifier from huggingface.co/models"}
     )
     target_model_path: str = field(

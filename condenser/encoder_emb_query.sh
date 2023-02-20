@@ -1,9 +1,9 @@
 OUTDIR="./temp"
-CONDENSER_MODEL_NAME="/data1/fch123/UDT-QA/condenser/model_bart_text/" #"/data1/fch123/UDT-QA/condenser/model_bert_prompt_raw_2//" #"/data1/fch123/UDT-QA/condenser/model_bert_text_table_raw/" #"facebook/dpr-question_encoder-single-nq-base" #"/data2/private/fanchenghao/UDT-QA/ANCE/model/co-condenser-wiki"
+CONDENSER_MODEL_NAME="/data1/fch123/UDT-QA/condenser/model_MoE_position_raw_table_3/" #"/data1/fch123/UDT-QA/condenser/model_bert_prompt_raw_2//" #"/data1/fch123/UDT-QA/condenser/model_bert_text_table_raw/" #"facebook/dpr-question_encoder-single-nq-base" #"/data2/private/fanchenghao/UDT-QA/ANCE/model/co-condenser-wiki"
 model_path=$CONDENSER_MODEL_NAME #"/data2/private/fanchenghao/UDT-QA/condenser/model_nq3/"
 cache_path="/data1/fch123/UDT-QA/condenser/.cache/"
-emb_nq_path="/data1/fch123/UDT-QA/condenser/embeddings-nq" #embeddings-nq-dpr
-emb_query_path="/data1/fch123/UDT-QA/condenser/embeddings-nq-queries/"
+emb_nq_path="/data1/fch123/UDT-QA/condenser/embeddings-nq-position-raw" #embeddings-nq-dpr
+emb_query_path="/data1/fch123/UDT-QA/condenser/embeddings-nq-position-queries-raw/"
 query_path="/data1/fch123/UDT-QA/condenser/nq-test-queries.json"
 cache_path="/data1/fch123/UDT-QA/condenser/.cache/"
 MODEL_DIR=nq-model
@@ -11,7 +11,7 @@ MODEL_DIR=nq-model
 
 # query
 
-CUDA_VISIBLE_DEVICES=$1 /home/fanchenghao/miniconda3/envs/py37/bin/python -m tevatron.driver.encode \
+CUDA_VISIBLE_DEVICES=$1 python -m tevatron.driver.encode_position_MoE \
   --output_dir=$OUTDIR \
   --model_name_or_path $model_path/query_model\
   --tokenizer_name $model_path \

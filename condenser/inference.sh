@@ -1,5 +1,5 @@
-ENCODE_QRY_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq-queries/"
-ENCODE_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq"
+ENCODE_QRY_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq-position-queries-raw/"
+ENCODE_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq-position-raw"
 DEPTH=100
 RUN="/data1/fch123/UDT-QA/condenser/run.nq.cc.text.table.txt"
 OUTDIR="./temp"

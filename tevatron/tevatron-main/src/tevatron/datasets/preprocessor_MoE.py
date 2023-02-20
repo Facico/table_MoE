@@ -103,8 +103,12 @@ class CorpusPreProcessor_tapas_MoE:
         self.text_max_length = text_max_length
         self.separator_text = separator_text
         self.separator_table = separator_table
-
     def __call__(self, example):
+        """self.num += 1
+        if self.num % 20000 == 0:
+            print("yyy"+str(self.num)+"yyy")
+        if self.num <= 150000:
+            return None"""
         if example['data_type'] == 0:
             docid = example['docid']
             text = example['title'] + self.separator_text + example['text'] if 'title' in example else example['text']
@@ -114,10 +118,16 @@ class CorpusPreProcessor_tapas_MoE:
                                         truncation=True)
         else:
             docid = example['docid']
-            text = self.tokenizer_table(table=seq_to_table(example['text']), 
-                                        add_special_tokens=False, 
-                                        max_length=self.text_max_length, 
-                                        truncation=True)['input_ids']
+            try:
+                text = self.tokenizer_table(table=seq_to_table(example['text']), 
+                                            add_special_tokens=False, 
+                                            max_length=self.text_max_length, 
+                                            truncation=True)['input_ids']
+            except:
+                text = self.tokenizer_text.encode(example['text'],
+                                        add_special_tokens=False,
+                                        max_length=self.text_max_length,
+                                        truncation=True)
             text = self.tokenizer_text.encode(example['title'].lower() + self.separator_table, 
                                     add_special_tokens=False, 
                                     max_length=256, truncation=True) + text

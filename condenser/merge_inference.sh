@@ -1,5 +1,5 @@
 INTERMEDIATE_DIR="/data1/fch123/UDT-QA/condenser/intermediate"
-ENCODE_QRY_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq-queries/"
+ENCODE_QRY_DIR="/data1/fch123/UDT-QA/condenser/embeddings-nq-position-queries-raw/"
 RUN="/data1/fch123/UDT-QA/condenser/run.nq.bert.text.table.raw.txt"
 python -m tevatron.faiss_retriever.reducer \
 --score_dir ${INTERMEDIATE_DIR} \

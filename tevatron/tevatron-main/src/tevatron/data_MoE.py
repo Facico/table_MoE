@@ -147,7 +147,7 @@ class EncodeDataset_tapas_MoE(Dataset):
             data_type = None
         else:
             text_id, text, data_type = (self.encode_data[item][f] for f in self.input_keys)
-        if self.encode_data[item]['data_type'] == 0:
+        if data_type is None or self.encode_data[item]['data_type'] == 0:
             encoded_text = self.tok_text.encode_plus(
                 text,
                 max_length=self.max_len,

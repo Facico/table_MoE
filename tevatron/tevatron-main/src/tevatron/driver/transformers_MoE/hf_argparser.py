@@ -193,12 +193,12 @@ class HfArgumentParser(ArgumentParser):
                   after initialization.
                 - The potential list of remaining argument strings. (same as argparse.ArgumentParser.parse_known_args)
         """
+        
         if args_filename or (look_for_args_file and len(sys.argv)):
             if args_filename:
                 args_file = Path(args_filename)
             else:
                 args_file = Path(sys.argv[0]).with_suffix(".args")
-
             if args_file.exists():
                 fargs = args_file.read_text().split()
                 args = fargs + args if args is not None else fargs + sys.argv[1:]

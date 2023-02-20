@@ -1,7 +1,7 @@
 CONDENSER_MODEL_NAME="bert-base-uncased" #"/data2/private/fanchenghao/UDT-QA/ANCE/model/co-condenser-wiki" #"bert-base-uncased" #"/data2/private/fanchenghao/UDT-QA/ANCE/model/co-condenser-wiki"
 #CONDENSER_MODEL_NAME="data2/private/fanchenghao/UDT-QA/condenser/model_nq/"
 train_path="/data1/fch123/UDT-QA/condenser/nq-train-raw-table" #"/data1/fch123/UDT-QA/condenser/nq-train"
-output_path="/data1/fch123/UDT-QA/condenser/model_MoE_position_raw_table_2/"
+output_path="/data1/fch123/UDT-QA/condenser/model_MoE_position_raw_table_3/"
 cache_path="/data/fanchenghao/.cache"
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 -m tevatron.driver.MoE_position_train \
   --output_dir $output_path \
